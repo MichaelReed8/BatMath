@@ -5,21 +5,21 @@ import pandas as pd
 
 def calculateSprayExpectedBattingAverage( launchAngle, exitVelocity):
     
-        data = statcast(start_dt='2023-01-01', end_dt='2024-01-31')
-        data = data[~data["bb_type"].isna()]
-        data = add_spray_angle(data, adjusted=False)
-        print("Spray angle ")
-        print(data[0:15])
-        with open("dtypes_output.txt", "w") as f:
-            f.write(data.dtypes.to_string())
+    data = statcast(start_dt='2023-01-01', end_dt='2024-01-31')
+    data = data[~data["bb_type"].isna()]
+    data = add_spray_angle(data, adjusted=False)
+    print("Spray angle ")
+    print(data[0:15])
+    with open("dtypes_output.txt", "w") as f:
+        f.write(data.dtypes.to_string())
 
-    
-        num_hits = data[data["events"].isin(["hit", "single", "double", "triple", "home_run"])]
-              
-        print(num_hits["events"][0:5])
-        #print("Number of balls in dataset: ", num_balls)
-    
 
+    num_hits = data[data["events"].isin(["hit", "single", "double", "triple", "home_run"])]
+    
+            
+    print(data["bb_type"][0:20])
+    #print("Number of balls in dataset: ", num_balls)
+calculateSprayExpectedBattingAverage(20, 94)
 
 
 
