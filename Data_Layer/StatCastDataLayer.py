@@ -119,7 +119,7 @@ def fetchData(launchAngle, exitVelocity, SprayAngle, Range):
     query = (f"Select spray_angle, exit_velocity, launch_angle, event_outcome "
              f"From DxBA Where spray_angle <= {AngleUpper} and spray_angle >= {AngleLower} "
             f"and exit_velocity <= {exitUpper} and exit_velocity >= {exitLower} "
-             f"and launch_angle = {launchAngle}" )
+             f"and launch_angle = {round(launchAngle)}" )
     cursor.execute(query)
     return cursor.fetchall()
     
