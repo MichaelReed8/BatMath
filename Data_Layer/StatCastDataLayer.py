@@ -108,18 +108,20 @@ def AddNewStatcastdf():
         entries = cursor.fetchone()[0]
         print(f"{entries} rows added")
 
-def fetchData(launchAngle, exitVelocity, SprayAngle, Range):
+def fetchData(launchAngle, exitVelocity, SprayAngle, AngleForgiveness, VeloForgiveness, LaunchForgiveness):
     #Calculate upper and lower ranges of exit velocity and spray angle
     connection = sqlite3.connect('BatMath.db')
     cursor = connection.cursor()
-    exitUpper = exitVelocity + Range
-    exitLower = exitVelocity - Range
-    AngleUpper = SprayAngle + Range
-    AngleLower = SprayAngle - Range
+    exitUpper = exitVelocity + VeloForgiveness
+    exitLower = exitVelocity - VeloForgiveness
+    AngleUpper = SprayAngle + AngleForgiveness
+    AngleLower = SprayAngle - AngleForgiveness
+    LaunchUpper = launchAngle + LaunchForgiveness
+    LaunchLower = launchAngle - LaunchForgiveness
     query = (f"Select spray_angle, exit_velocity, launch_angle, event_outcome "
              f"From DxBA Where spray_angle <= {AngleUpper} and spray_angle >= {AngleLower} "
             f"and exit_velocity <= {exitUpper} and exit_velocity >= {exitLower} "
-             f"and launch_angle = {round(launchAngle)}" )
+             f"and launch_angle <= {round(LaunchUpper)} and launch_angle >= {round(LaunchLower)}" )
     cursor.execute(query)
     return cursor.fetchall()
     

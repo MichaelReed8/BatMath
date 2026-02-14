@@ -7,8 +7,9 @@ def ClearData():
 def AddData():
     AddNewStatcastdf()
 
-def GetData(launch_angle, exit_velo, spray_angle, range):
-    data = fetchData(launchAngle=launch_angle, exitVelocity=exit_velo, SprayAngle=spray_angle, Range=range)
+def GetData(launch_angle, exit_velo, spray_angle, AngleForgiveness, VeloForgiveness, LaunchForgiveness):
+    data = fetchData(launchAngle=launch_angle, exitVelocity=exit_velo, SprayAngle=spray_angle, 
+                     AngleForgiveness=AngleForgiveness, VeloForgiveness=VeloForgiveness, LaunchForgiveness=LaunchForgiveness)
     if(data == []):
         return print('no data')
     AXBavg = 0
