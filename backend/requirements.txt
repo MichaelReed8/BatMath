@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic
+pybaseball
+python-dateutil
+pandas
+numpy

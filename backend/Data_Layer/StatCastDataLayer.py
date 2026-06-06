@@ -1,13 +1,33 @@
 import sqlite3
 from datetime import date
+from pathlib import Path
 from pybaseball import statcast
 from pybaseball.datahelpers.statcast_utils import add_spray_angle
 from dateutil.relativedelta import relativedelta
 import pandas as pd
+from BatMath.backend.Models.DxBA import DataOperationResult
+
+
+DB_PATH = Path(__file__).resolve().parents[2] / "BatMath.db"
+
+CREATE_DXBA_TABLE_SQL = """
+CREATE TABLE DxBA (
+id INTEGER PRIMARY KEY,
+spray_angle REAL NOT NULL,
+event_outcome TEXT NOT NULL,
+exit_velocity REAL NOT NULL,
+launch_angle INTEGER NOT NULL,
+CreateDate Text NOT NULL
+);
+"""
+
+
+def get_connection():
+    return sqlite3.connect(DB_PATH)
 
 
 def ClearAndResetTables():
-    connection = sqlite3.connect('BatMath.db')
+    connection = get_connection()
     cursor = connection.cursor()
 
     # Query to get all user-defined table names
@@ -18,41 +38,39 @@ def ClearAndResetTables():
     for table_name in tables:
         # table_name is a tuple, so access the name via index [0]
         drop_query = f"DROP TABLE IF EXISTS {table_name[0]};"
-        print(f"Executing: {drop_query}")
         cursor.execute(drop_query)
 
     # Commit changes
     connection.commit()
 
     # recreate BatMath Table
-    cursor.execute("""
-    CREATE TABLE DxBA (
-    id INTEGER PRIMARY KEY,
-    spray_angle REAL NOT NULL,
-    event_outcome TEXT NOT NULL,
-    exit_velocity REAL NOT NULL,
-    launch_angle INTEGER NOT NULL,
-    CreateDate Text NOT NULL             
-    );
-    
-    """)
+    cursor.execute(CREATE_DXBA_TABLE_SQL)
 
     #Commit and Close
     connection.commit()
     connection.close()
+    return DataOperationResult(
+        success=True,
+        message="DxBA table was cleared and recreated.",
+        rows_affected=len(tables),
+    )
 
 def AddNewStatcastdf():
-    connection = sqlite3.connect('BatMath.db')
+    connection = get_connection()
     cursor = connection.cursor()
 
     # try to get the most recent entry
-    cursor.execute("SELECT CreateDate FROM DxBA ORDER BY CreateDate LIMIT 1")
+    cursor.execute("SELECT CreateDate FROM DxBA ORDER BY CreateDate DESC LIMIT 1")
 
-    currDate = cursor.fetchone()[0]
+    row = cursor.fetchone()
     finalDate = date.today()
-    if currDate is None:
+    if row is None or row[0] is None:
         currDate = '2008-01-01'
+    else:
+        currDate = row[0]
     currDate = date.fromisoformat(currDate)
+    total_rows_added = 0
+
     while currDate < finalDate: 
         #fetch all statcast df from after this day
         endDate = currDate + relativedelta(years=1)
@@ -99,6 +117,7 @@ def AddNewStatcastdf():
             if_exists="append",
             index=False
         )
+        total_rows_added += len(df_dxba)
         
         # Validation
         cursor.execute(
@@ -108,9 +127,16 @@ def AddNewStatcastdf():
         entries = cursor.fetchone()[0]
         print(f"{entries} rows added")
 
+    connection.close()
+    return DataOperationResult(
+        success=True,
+        message="Statcast data import completed.",
+        rows_affected=total_rows_added,
+    )
+
 def fetchData(launchAngle, exitVelocity, SprayAngle, AngleForgiveness, VeloForgiveness, LaunchForgiveness):
     #Calculate upper and lower ranges of exit velocity and spray angle
-    connection = sqlite3.connect('BatMath.db')
+    connection = get_connection()
     cursor = connection.cursor()
     exitUpper = exitVelocity + VeloForgiveness
     exitLower = exitVelocity - VeloForgiveness
@@ -118,12 +144,26 @@ def fetchData(launchAngle, exitVelocity, SprayAngle, AngleForgiveness, VeloForgi
     AngleLower = SprayAngle - AngleForgiveness
     LaunchUpper = launchAngle + LaunchForgiveness
     LaunchLower = launchAngle - LaunchForgiveness
-    query = (f"Select spray_angle, exit_velocity, launch_angle, event_outcome "
-             f"From DxBA Where spray_angle <= {AngleUpper} and spray_angle >= {AngleLower} "
-            f"and exit_velocity <= {exitUpper} and exit_velocity >= {exitLower} "
-             f"and launch_angle <= {round(LaunchUpper)} and launch_angle >= {round(LaunchLower)}" )
-    cursor.execute(query)
-    return cursor.fetchall()
+    query = (
+        "Select spray_angle, exit_velocity, launch_angle, event_outcome "
+        "From DxBA Where spray_angle <= ? and spray_angle >= ? "
+        "and exit_velocity <= ? and exit_velocity >= ? "
+        "and launch_angle <= ? and launch_angle >= ?"
+    )
+    cursor.execute(
+        query,
+        (
+            AngleUpper,
+            AngleLower,
+            exitUpper,
+            exitLower,
+            round(LaunchUpper),
+            round(LaunchLower),
+        ),
+    )
+    results = cursor.fetchall()
+    connection.close()
+    return results
     
    
 
